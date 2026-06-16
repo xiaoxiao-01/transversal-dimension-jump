@@ -59,6 +59,18 @@ The `gaprc` pre-binds those three names so the parser sees them as defined and
 stays silent. (Installing the `design` package would also fix it, but it pulls in
 `grape` → `nauty`, a much larger compile.)
 
+## Why the kernel launches through `sage`
+
+The registered kernel's `kernel.json` runs `sage --python -m ipykernel_launcher`, not
+the bare env `python`. `from sage.all import *` shells out to helper binaries
+(`Singular`, `gap`, …) that live in the env's `bin/`, and only the `sage` wrapper
+puts that directory plus Sage's environment variables on `PATH`. Launching the bare
+python fails on the first cell with `Singular not found on PATH`. It uses plain
+`ipykernel_launcher` (not `sage.repl.ipython_kernel`) so cells run as ordinary
+Python — the Sage preparser, which rewrites `^`, integer literals, etc., is *not*
+applied. (There is also a separate conda-provided **"SageMath 10.5"** kernel that
+*does* preparse; don't use it for these notebooks.)
+
 ## Manual fallback
 
 If you prefer to run the steps by hand, they're each a labelled section in

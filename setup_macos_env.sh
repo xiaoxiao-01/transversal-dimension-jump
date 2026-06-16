@@ -135,9 +135,33 @@ EOF
 fi
 
 # --- 6. Jupyter kernel for VSCode ------------------------------------------
+# The kernel must launch through the `sage` wrapper, not the bare env python:
+# `from sage.all import *` shells out to helper binaries (Singular, gap, ...) that
+# live in ${CONDA_PREFIX}/bin, and only `sage --python` puts that dir + Sage's env
+# vars on PATH. Launching the bare python fails with "Singular not found on PATH".
+# We use plain `ipykernel_launcher` (NOT sage.repl.ipython_kernel) so the notebook
+# runs as ordinary Python — no Sage preparser rewriting `^`, integer literals, etc.
 say "Registering Jupyter kernel 'Python (${ENV_NAME} / Sage ${SAGE_VERSION})'"
 python -m ipykernel install --user --name "${ENV_NAME}" \
   --display-name "Python (${ENV_NAME} / Sage ${SAGE_VERSION})"
+KERNEL_JSON="${HOME}/Library/Jupyter/kernels/${ENV_NAME}/kernel.json"
+cat > "${KERNEL_JSON}" <<EOF
+{
+ "argv": [
+  "${CONDA_PREFIX}/bin/sage",
+  "--python",
+  "-m",
+  "ipykernel_launcher",
+  "-f",
+  "{connection_file}"
+ ],
+ "display_name": "Python (${ENV_NAME} / Sage ${SAGE_VERSION})",
+ "language": "python",
+ "metadata": {
+  "debugger": true
+ }
+}
+EOF
 
 # --- 7. verify end-to-end ---------------------------------------------------
 say "Verifying full stack (sage + bposd + QDistRnd distance estimate)"
