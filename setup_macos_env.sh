@@ -11,6 +11,8 @@
 #      (Guava is compiled from source).
 #   5. Writes ~/.gap/gaprc so QDistRnd loads cleanly through Sage's gap interface.
 #   6. Registers a Jupyter kernel "Python (tdj / Sage 10.5)" for VSCode.
+#   6b. Configures nbstripout so running cells doesn't dirty notebooks in git
+#       (strips execution_count, keeps outputs).
 #   7. Verifies the full stack end-to-end.
 #
 # Safe to re-run: each step is idempotent (skips work already done).
@@ -162,6 +164,31 @@ cat > "${KERNEL_JSON}" <<EOF
  }
 }
 EOF
+
+# --- 6b. nbstripout: keep notebook git diffs clean --------------------------
+# Strips volatile execution_count (resets it on commit) so just running cells
+# doesn't dirty the notebook in git. Outputs ARE kept (--keep-output) because this
+# repo intentionally ships the printed code parameters as published results.
+say "Configuring nbstripout (keep outputs, strip execution counts)"
+if command -v uv >/dev/null 2>&1; then
+  uv pip install --python "${CONDA_PREFIX}/bin/python" nbstripout >/dev/null
+else
+  python -m pip install nbstripout >/dev/null
+fi
+# .gitattributes is committed and travels with the repo; add the entries if absent.
+if ! grep -q 'filter=nbstripout' .gitattributes 2>/dev/null; then
+  cat >> .gitattributes <<'EOF'
+*.ipynb filter=nbstripout
+*.ipynb diff=ipynb
+EOF
+fi
+# Per-machine filter config in .git/config. Use the env python by absolute path so
+# it works even when committing outside the activated env (e.g. from VSCode), and
+# include --keep-output (the `nbstripout --install --keep-output` flag does NOT
+# persist this into the clean command).
+git config filter.nbstripout.clean "\"${CONDA_PREFIX}/bin/python\" -m nbstripout --keep-output"
+git config filter.nbstripout.smudge cat
+git config filter.nbstripout.required true
 
 # --- 7. verify end-to-end ---------------------------------------------------
 say "Verifying full stack (sage + bposd + QDistRnd distance estimate)"

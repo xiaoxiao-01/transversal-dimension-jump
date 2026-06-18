@@ -41,11 +41,30 @@ This is idempotent — safe to re-run; it skips anything already done. It will:
 
 ## What lives where
 
-- **In the repo (travels via git):** `setup_macos_env.sh`, this file, and the
-  notebook edit that comments out the broken `SetPackagePath(...)` placeholder in
-  cell 1 (QDistRnd is auto-discovered from `~/.gap/pkg`, so the line isn't needed).
+- **In the repo (travels via git):** `setup_macos_env.sh`, this file, `.gitattributes`,
+  and the notebook edit that comments out the broken `SetPackagePath(...)` placeholder
+  in cell 1 (QDistRnd is auto-discovered from `~/.gap/pkg`, so the line isn't needed).
 - **Machine-local (the script recreates these):** the `tdj` conda env, the GAP
-  packages under `~/.gap/pkg/`, `~/.gap/gaprc`, and the Jupyter kernelspec.
+  packages under `~/.gap/pkg/`, `~/.gap/gaprc`, the Jupyter kernelspec, and the
+  per-clone `filter.nbstripout.*` git config.
+
+## Clean notebook diffs (nbstripout)
+
+The setup configures [`nbstripout`](https://github.com/kynan/nbstripout) as a git
+clean filter so that merely **running cells doesn't dirty the notebook in git** —
+the volatile `execution_count` is stripped from what git sees. Cell **outputs are
+kept** (`--keep-output`), since this repo ships the printed code parameters as
+results. Your on-disk notebook is untouched; only git's view is normalized.
+
+`.gitattributes` is committed, but the filter config in `.git/config` is per-clone.
+The setup script sets it; if you ever set it up by hand, the key is:
+
+```bash
+git config filter.nbstripout.clean '"<env>/bin/python" -m nbstripout --keep-output'
+```
+
+(Note: `nbstripout --install --keep-output` does *not* persist `--keep-output` into
+the clean command — it must be set explicitly, as the script does.)
 
 ## Why the `~/.gap/gaprc` fix is needed
 
