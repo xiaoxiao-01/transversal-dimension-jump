@@ -575,4 +575,4 @@ def LogicalCCZMat(eval_code, P_CCZ_mat):
             for t in range(k):
                 CCZ_mat[i, j, t] = CalPhase_CCZ(eval_code.lx.toarray()[i], eval_code.lx.toarray()[j], eval_code.lx.toarray()[t], P_CCZ_mat)
 
-    return CCZ_mat 
+    return CCZ_mat
